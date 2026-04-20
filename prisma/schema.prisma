@@ -1,0 +1,122 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./remedy.db"
+}
+
+model User {
+  id          String @id @default(cuid())
+  email       String @unique
+  displayName String
+  role        String @default("owner") // owner, verifier, admin
+
+  ownedItems        RemediationItem[]    @relation("Owner")
+  escalationItems   RemediationItem[]    @relation("EscalationOwner")
+  statusChanges     StatusHistory[]
+  evidenceUploads   EvidenceRecord[]
+  verifications     VerificationRecord[]
+  assignmentsMade   AssignmentHistory[]  @relation("ChangedBy")
+  assignmentsFrom   AssignmentHistory[]  @relation("PreviousOwner")
+  assignmentsTo     AssignmentHistory[]  @relation("NewOwner")
+}
+
+model RemediationItem {
+  id                String   @id @default(cuid())
+  externalKey       String   @unique // idempotency key from PRISM
+  prismScenarioId   String?  // source scenario in PRISM
+  prismFindingId    String?  // specific finding/decision ID
+  title             String
+  description       String?
+  findingType       String   // e.g., excessive_privilege, orphaned_account, stale_access, mfa_disabled
+  severity          String   // critical, high, medium, low
+  sourceSystem      String?  // the app where the issue was found
+  applicationName   String?  // human-readable app name
+  entitlementName   String?  // specific role/permission
+  userId            String?  // affected user's ID in source system
+  userEmail         String?  // affected user's email
+  userDisplayName   String?  // affected user's display name
+  ownerId           String?
+  owner             User?    @relation("Owner", fields: [ownerId], references: [id])
+  escalationOwnerId String?
+  escalationOwner   User?    @relation("EscalationOwner", fields: [escalationOwnerId], references: [id])
+  dueDate           DateTime?
+  status            String   @default("open") // open, in_progress, blocked, resolved, verified, closed
+  resolutionType    String?  // revoked, modified, documented, exception, false_positive
+  resolutionNotes   String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  resolvedAt        DateTime?
+  verifiedAt        DateTime?
+  closedAt          DateTime?
+
+  statusHistory     StatusHistory[]
+  evidence          EvidenceRecord[]
+  verifications     VerificationRecord[]
+  assignmentHistory AssignmentHistory[]
+}
+
+model StatusHistory {
+  id                String          @id @default(cuid())
+  remediationItemId String
+  remediationItem   RemediationItem @relation(fields: [remediationItemId], references: [id], onDelete: Cascade)
+  actorId           String
+  actor             User            @relation(fields: [actorId], references: [id])
+  fromStatus        String
+  toStatus          String
+  comment           String?
+  createdAt         DateTime        @default(now())
+}
+
+model EvidenceRecord {
+  id                  String          @id @default(cuid())
+  remediationItemId   String
+  remediationItem     RemediationItem @relation(fields: [remediationItemId], references: [id], onDelete: Cascade)
+  evidenceType        String          // screenshot, log_export, config_change, attestation, external_link
+  sourceSystem        String?
+  fileName            String?
+  fileUrl             String?
+  description         String
+  periodCoveredStart  DateTime?
+  periodCoveredEnd    DateTime?
+  uploadedById        String
+  uploadedBy          User            @relation(fields: [uploadedById], references: [id])
+  createdAt           DateTime        @default(now())
+}
+
+model VerificationRecord {
+  id                String          @id @default(cuid())
+  remediationItemId String
+  remediationItem   RemediationItem @relation(fields: [remediationItemId], references: [id], onDelete: Cascade)
+  verifierId        String
+  verifier          User            @relation(fields: [verifierId], references: [id])
+  outcome           String          // accepted, rejected
+  comment           String?
+  createdAt         DateTime        @default(now())
+}
+
+model AssignmentHistory {
+  id                String          @id @default(cuid())
+  remediationItemId String
+  remediationItem   RemediationItem @relation(fields: [remediationItemId], references: [id], onDelete: Cascade)
+  previousOwnerId   String?
+  previousOwner     User?           @relation("PreviousOwner", fields: [previousOwnerId], references: [id])
+  newOwnerId        String
+  newOwner          User            @relation("NewOwner", fields: [newOwnerId], references: [id])
+  changedById       String
+  changedBy         User            @relation("ChangedBy", fields: [changedById], references: [id])
+  reason            String?
+  createdAt         DateTime        @default(now())
+}
+
+model SlaPolicy {
+  id                  String @id @default(cuid())
+  findingType         String
+  severity            String
+  dueInDays           Int
+  escalationAfterDays Int
+
+  @@unique([findingType, severity])
+}
