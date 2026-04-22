@@ -4,6 +4,12 @@
 
 REMEDY is an opinionated workflow application for tracking remediation of access control issues identified by PRISM or similar risk/access review tools. It is NOT a generic ticketing system — it enforces a specific compliance-oriented workflow with immutable audit history.
 
+## Why This Exists
+
+Auditors don't just want to know you found a problem — they want to see how you tracked it to closure, who was responsible, what evidence was collected, and that the fix was independently verified. Most teams track remediation in Jira or a spreadsheet, which means the audit trail is whatever someone remembered to write in a comment, status transitions have no enforcement, and evidence is a link to a Confluence page that may or may not still exist.
+
+REMEDY was built by a GRC practitioner who needed a remediation workflow that satisfies auditor expectations by default: constrained status transitions, mandatory evidence before resolution, immutable history, and SLA tracking tied to severity. It's opinionated because compliance workflows should be — the constraints exist for a reason.
+
 ## Status: On Hold
 
 This application is scaffolded with a complete backend but frontend is pending. The plan is to integrate remediation tracking directly into PRISM instead of running as a standalone app.
@@ -76,3 +82,13 @@ src/
 6. Closed items are read-only
 7. Every status/owner change creates audit history
 8. Due dates auto-calculated from SLA policies
+
+## Development
+
+Designed, spec'd, and directed by a security/compliance practitioner. AI-assisted implementation using [Claude Code](https://claude.ai/code).
+
+The workflow constraints, SLA model, evidence requirements, and audit trail design come from direct experience with what auditors expect to see during remediation reviews. The implementation was accelerated with AI tooling, but the business rules reflect real compliance requirements — not hypothetical ones.
+
+## License
+
+Apache 2.0 with Commons Clause — see [LICENSE](LICENSE).
