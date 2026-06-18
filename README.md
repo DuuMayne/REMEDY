@@ -7,7 +7,7 @@ Tracks the remediation of access control findings through a strict, auditable wo
 Every status change is recorded with a timestamp and who made it — creating an immutable audit trail that satisfies "show me what you did to fix this" questions.
 
 **What it enforces:**
-- Issues must move through defined stages: `open → in_progress → resolved → verified → closed`
+- Issues move through defined stages: `open → in_progress → resolved → verified → closed` (with shortcuts like `open → resolved` directly, and a `blocked` state available from `open`, `in_progress`, or `resolved`)
 - Resolution requires attached evidence (e.g. screenshot of account deletion, ticket link) — except for confirmed false positives
 - Resolved items must be independently verified before closing
 - Rejection during verification sends the issue back to `in_progress`
@@ -119,8 +119,8 @@ The ingest endpoint is idempotent — sending the same finding twice (matched on
   "title": "Orphaned admin account: jsmith@company.com in GitHub",
   "description": "User jsmith was offboarded 45 days ago but retains admin access on 3 GitHub repositories",
   "severity": "high",
-  "source": "PRISM",
-  "category": "access_control"
+  "sourceSystem": "PRISM",
+  "findingType": "orphaned_account"
 }
 ```
 
@@ -137,14 +137,15 @@ The ingest endpoint is idempotent — sending the same finding twice (matched on
 |---|---|---|
 | `GET` | `/api/sla` | List all SLA policies |
 | `POST` | `/api/sla` | Create a policy |
-| `DELETE` | `/api/sla/:id` | Delete a policy |
+| `DELETE` | `/api/sla?id=<id>` | Delete a policy |
 
 **Example SLA policy:**
 ```json
 {
   "severity": "critical",
-  "category": "access_control",
-  "dueDays": 3
+  "findingType": "orphaned_account",
+  "dueInDays": 3,
+  "escalationAfterDays": 7
 }
 ```
 
@@ -176,8 +177,8 @@ curl -X POST http://localhost:3000/api/ingest \
     "externalKey": "PRISM-2026-Q2-003",
     "title": "Ransomware scenario ALE exceeds threshold",
     "severity": "high",
-    "source": "PRISM",
-    "category": "ransomware"
+    "sourceSystem": "PRISM",
+    "findingType": "policy_violation"
   }'
 ```
 
@@ -189,8 +190,8 @@ curl -X POST http://localhost:3000/api/ingest \
     "externalKey": "RETINA-OKTA-jsmith-github",
     "title": "Orphaned account: jsmith in GitHub",
     "severity": "medium",
-    "source": "RETINA",
-    "category": "access_control"
+    "sourceSystem": "RETINA",
+    "findingType": "orphaned_account"
   }'
 ```
 
@@ -237,8 +238,8 @@ Then set `DATABASE_URL` to your PostgreSQL connection string and run `npx prisma
 
 ### Project structure
 ```
-app/api/        — Next.js API route handlers
-app/lib/        — Business logic, SLA calculations, workflow validation
+src/app/api/    — Next.js API route handlers
+src/lib/        — Business logic, SLA calculations, workflow validation
 prisma/         — Schema and migrations
 seed.ts         — Sample data for development
 ```
