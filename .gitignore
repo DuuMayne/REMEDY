@@ -2,6 +2,7 @@
 
 # database
 prisma/remedy.db
+remedy.db
 
 # generated
 src/generated/
